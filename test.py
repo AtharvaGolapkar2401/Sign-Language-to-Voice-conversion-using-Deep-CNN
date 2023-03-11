@@ -1,3 +1,5 @@
+import tkinter
+
 import cv2
 from cvzone.HandTrackingModule import HandDetector
 import numpy as np
@@ -5,14 +7,75 @@ import math
 from cvzone.ClassificationModule import Classifier
 import pyttsx3
 from playsound import playsound
+from tkinter import *
+from PIL import Image, ImageTk
+import speech_recognition as sr
+r = sr.Recognizer()
 
 engine = pyttsx3.init()
 voices = pyttsx3.init().getProperty('voices')
-engine.setProperty('voice', voices[0].id)
+engine.setProperty('voice', voices[1].id)
+engine.setProperty('rate', 150)
+engine.setProperty('volume', 1.0)
 # print(voices[1].id)
 
+#--------------------------#
+#tkinter wala part
 
-cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+def station_name(fname):
+    incoming_text = fname
+
+root = Tk()
+root.geometry("900x700")
+root.configure(bg="white")
+# Label(root, text="atharva trial cam").grid()
+f1 = LabelFrame(root, bg="red")
+f1.grid()
+f2 = LabelFrame(root, bg="yellow")
+L1 = Label(f1, bg="red")
+L1.grid()
+
+
+incoming_text = tkinter.StringVar()
+incoming_text.set("XYZ")
+def station(fname):
+    incoming_text.set(fname)
+L2 = Label(root, textvariable=incoming_text, bg="black", fg="white", font=("comicsansms", 50, "bold"))
+L2.grid()
+
+
+def getvals():
+     amount = amountVal.get()
+     engine.say("Rupees"+amount)
+     engine.runAndWait()
+
+def speak():
+    while True:
+        counter = 1
+        with sr.Microphone() as source:
+                #clear the bg noise
+                r.adjust_for_ambient_noise(source, duration=0.3)
+                print("Speak now")
+                # capture the audio
+                audio = r.listen(source)
+                try:
+                    if (counter == 1):
+                            text = r.recognize_google(audio)
+                            station(text)
+                            break
+                            counter = 0
+                except:
+                    print("Please say again!!")
+
+amountVal = StringVar()
+amountentry = Entry(root, textvariable=amountVal)
+amountentry.grid()
+btn = Button(text="submit", command=getvals).grid(row=0,column=2)
+Button(root, text= "Speak", command=speak).grid(row=0,column=3)
+#----------------------------------------#
+#project wala opencv
+
+cap = cv2.VideoCapture(0)
 detector = HandDetector(maxHands=1)
 classifier = Classifier("Model/keras2_model.h5", "Model/labels.txt")
 labels = ["repeat", "return", "single"]
@@ -27,10 +90,18 @@ width = 300
 blank_image = np.zeros((height, width, 3), np.uint8)
 hii_counter = 0
 
+
+
 while True:
     success, img = cap.read()
     imgOutput = img.copy()
     hands, img = detector.findHands(img)
+    image = cap.read()[1]
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    image = ImageTk.PhotoImage(Image.fromarray(image))
+    L1['image'] = image
+    root.update()
+
     if hands:
         hand = hands[0]
         x, y, w, h = hand['bbox']
@@ -63,12 +134,14 @@ while True:
         # cv2.rectangle(imgOutput, (x - offset, y - offset - 50), (x - offset + 250, y - offset - 50 + 50), (255,0,255), cv2.FILLED)
         # cv2.putText(imgOutput, labels[index], (x, y - 20), cv2.FONT_HERSHEY_SIMPLEX, 2, (255, 255, 255), 5)
         # cv2.rectangle(imgOutput, (x - offset, y - 10 ), (x + w + offset, y + h + offset), (255,0,255), 4)
-        blank_image[:] = (0, 0, 0)
-        cv2.putText(blank_image,labels[index], (100,80), cv2.FONT_HERSHEY_SIMPLEX, 2, (255, 255, 255), 5)
-        cv2.imshow('3 Channel Window', blank_image)
-        cv2.imshow("IMAGECROP", imgCrop)
-        cv2.imshow("IMAGEWHITE", imgWhite)
+        # blank_image[:] = (0, 0, 0)
+        # cv2.putText(blank_image,labels[index], (100,80), cv2.FONT_HERSHEY_SIMPLEX, 2, (255, 255, 255), 5)
+        # cv2.imshow('3 Channel Window', blank_image)
+        # cv2.imshow("IMAGECROP", imgCrop)
+        # cv2.imshow("IMAGEWHITE", imgWhite)
         # cv2.imshow("Output", imgOutput)
+
+
 
         if labels[index] == "single":
             hii_counter += 1
@@ -88,11 +161,24 @@ while True:
                 playsound('repeat.mp3')
                 hii_counter = -5
 
-    cv2.imshow("IMAGE", imgOutput)
-    key = cv2.waitKey(1)
+    # cv2.imshow("IMAGE", imgOutput)
+    # key = cv2.waitKey(1)
 
-    if key & 0xFF == 27: # esc key
-        break
+    # if key & 0xFF == 27: # esc key
+    #     break
+
+    # with sr.Microphone() as source:
+    #     # clear the bg noise
+    #     r.adjust_for_ambient_noise(source, duration=0.3)
+    #     print("Speak now")
+    #     # capture the audio
+    #     audio = r.listen(source)
+    #     try:
+    #         text = r.recognize_google(audio)
+    #         print(text)
+    #     except:
+    #         print("Please say again!!")
+
 
 cap.release()
 cv2.destroyAllWindows()
